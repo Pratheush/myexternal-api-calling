@@ -40,10 +40,16 @@ Web capture_25-9-2024_145044_howtodoinjava.com.jpeg
 
 
 #### some configuration files ####
-/MyJournalApplication/src/main/resources
-/MyJournalApplication/src/test/resources
-/CodeBufferSpringBootMongoDB/src/main/resources
-/CodeBufferSpringBootMongoDB/src/test/resources
+/MyJournalApplication/src/main/resources/application-atlas.properties
+/MyJournalApplication/src/main/resources/application.properties
+/MyJournalApplication/src/test/resources/application.properties
+/CodeBufferSpringBootMongoDB/src/main/resources/application.properties
+/CodeBufferSpringBootMongoDB/src/main/resources/application-codebuffer.properties
+/CodeBufferSpringBootMongoDB/src/main/resources/application-student.properties
+/CodeBufferSpringBootMongoDB/src/main/resources/application-tod.properties
+/CodeBufferSpringBootMongoDB/src/test/resources/application-student.properties
+/CodeBufferSpringBootMongoDB/src/test/resources/application.properties
+
 
 
 
