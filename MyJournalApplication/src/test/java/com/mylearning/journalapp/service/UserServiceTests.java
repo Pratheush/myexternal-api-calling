@@ -108,20 +108,20 @@ class UserServiceTests {
 
     @BeforeEach
     void initDBSetupSavedUser() {
-        User abc = new User(null, "ABC", "ABC@gmail.com", "ABC123", null, List.of("USER"));
-        User def = new User(null, "DEF", "DEF@gmail.com", "DEF123", null, List.of("USER"));
-        User ghi = new User(null, "GHI", "GHI@gmail.com", "GHI123", null, List.of("USER"));
+        User abc = new User(null, "ABC", "ABC@gmail.com",true, "ABC123", null, List.of("USER"));
+        User def = new User(null, "DEF", "DEF@gmail.com", false,"DEF123", null, List.of("USER"));
+        User ghi = new User(null, "GHI", "GHI@gmail.com",true, "GHI123", null, List.of("USER"));
         List<User> userList = getUsers(abc, def, ghi);
         userRepository.saveAll(userList);  // Saves the users into the test database
     }
 
     @NotNull
     private static List<User> getUsers(User abc, User def, User ghi) {
-        User raju = new User(null, "raju", "raju@gmail.com", "raju123", null, List.of("USER"));
-        User raj = new User(null, "raj", "raj@gmail.com", "raj123", null, List.of("USER"));
-        User vibha = new User(null, "vibha", "vibha@gmail.com", "vibha123", null, List.of("USER"));
-        User shyam = new User(null, "shyam", "shyam@gmail.com", "shyam123", null, List.of("USER"));
-        User gaurav = new User(null, "gaurav", "gaurav@gmail.com", "gaurav123", null, List.of("USER"));
+        User raju = new User(null, "raju", "raju@gmail.com",true, "raju123", null, List.of("USER"));
+        User raj = new User(null, "raj", "raj@gmail.com",false, "raj123", null, List.of("USER"));
+        User vibha = new User(null, "vibha", "vibha@gmail.com",true, "vibha123", null, List.of("USER"));
+        User shyam = new User(null, "shyam", "shyam@gmail.com",true, "shyam123", null, List.of("USER"));
+        User gaurav = new User(null, "gaurav", "gaurav@gmail.com",false, "gaurav123", null, List.of("USER"));
         return List.of(abc, def, ghi,raju,raj,vibha,shyam,gaurav);
     }
 

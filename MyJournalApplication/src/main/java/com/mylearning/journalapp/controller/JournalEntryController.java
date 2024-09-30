@@ -34,6 +34,7 @@ public class JournalEntryController {
         JournalEntry entry = JournalEntry.builder()
                 .title(entryDto.title())
                 .content(entryDto.content())
+                .sentiment(entryDto.sentiment())
                 .build();
         try {
             SecurityContext securityContext = SecurityContextHolder.getContext();
@@ -47,6 +48,7 @@ public class JournalEntryController {
                     .title(journalEntry.getTitle())
                     .content(journalEntry.getContent())
                     .createdOn(journalEntry.getCreatedOn())
+                    .sentiment(journalEntry.getSentiment())
                     .build();
 
             return ResponseEntity.status(HttpStatus.CREATED).body(journalEntry);
@@ -69,6 +71,7 @@ public class JournalEntryController {
                         .content(journalEntry.getContent())
                         .createdOn(journalEntry.getCreatedOn())
                         .updatedOn(journalEntry.getUpdatedOn())
+                        .sentiment(journalEntry.getSentiment())
                         .build())
                 .toList();
         return ResponseEntity.status(HttpStatus.OK).body(journalEntryDtos);
@@ -87,6 +90,7 @@ public class JournalEntryController {
                         .content(journalEntry.getContent())
                         .createdOn(journalEntry.getCreatedOn())
                         .updatedOn(journalEntry.getUpdatedOn())
+                        .sentiment(journalEntry.getSentiment())
                         .build())
                 .toList();
         return ResponseEntity.status(HttpStatus.OK).body(journalEntryDtos);
@@ -97,6 +101,7 @@ public class JournalEntryController {
         JournalEntry entry = JournalEntry.builder()
                 .title(entryDto.title())
                 .content(entryDto.content())
+                .sentiment(entryDto.sentiment())
                 .build();
 
         SecurityContext securityContext = SecurityContextHolder.getContext();
@@ -110,6 +115,7 @@ public class JournalEntryController {
                 .content(updatedJournalEntry.getContent())
                 .createdOn(updatedJournalEntry.getCreatedOn())
                 .updatedOn(updatedJournalEntry.getUpdatedOn())
+                .sentiment(updatedJournalEntry.getSentiment())
                 .build();
 
         return ResponseEntity.status(HttpStatus.OK).body(journalEntryDto);

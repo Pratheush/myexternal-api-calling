@@ -46,9 +46,9 @@ class MyUserServiceTests {
 
     @BeforeEach
     void initDBSetupSavedUser() {
-        User abc = new User(null, "ABC", "ABC@gmail.com", "ABC123", null, List.of("USER"));
-        User def = new User(null, "DEF", "DEF@gmail.com", "DEF123", null, List.of("USER"));
-        User ghi = new User(null, "GHI", "GHI@gmail.com", "GHI123", null, List.of("USER"));
+        User abc = new User(null, "ABC", "ABC@gmail.com",true, "ABC123", null, List.of("USER"));
+        User def = new User(null, "DEF", "DEF@gmail.com", false,"DEF123", null, List.of("USER"));
+        User ghi = new User(null, "GHI", "GHI@gmail.com",true, "GHI123", null, List.of("USER"));
         List<User> userList = List.of(abc, def, ghi);
         userRepository.saveAll(userList);  // Saves the users into the test database
     }

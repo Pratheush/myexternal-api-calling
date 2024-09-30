@@ -6,6 +6,9 @@ import com.mylearning.journalapp.repository.JournalEntryRepository;
 import com.mylearning.journalapp.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,10 +28,13 @@ public class UserService {
 
     private final JournalEntryRepository journalEntryRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JournalEntryRepository journalEntryRepository) {
+    private final MongoTemplate mongoTemplate;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JournalEntryRepository journalEntryRepository, MongoTemplate mongoTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.journalEntryRepository = journalEntryRepository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public Optional<User> findByUserName(String userName) {
@@ -75,10 +81,21 @@ public class UserService {
     @Transactional
     public String deleteUserByUsername(String userName) {
         userRepository.findByUserName(userName).ifPresentOrElse(user -> {
+            log.info("Attempting to delete user with username: {}", userName);
+            // Check for null journal entries
+            /**
+             * If user.getJournalEntries() is null (instead of an empty collection), calling .isEmpty() will throw a NullPointerException.
+             *  so instead of checking >>>  !user.getJournalEntries().isEmpty() first
+             *  we should check >>> user.getJournalEntries() != null then we should check for empty
+             */
+            if(user.getJournalEntries() != null && !user.getJournalEntries().isEmpty()) journalEntryRepository.deleteAll(user.getJournalEntries());
+            log.info("All JournalEntries Deleted with username: {}", userName);
+            // Delete the user by their username
             userRepository.deleteByUserName(user.getUserName());
-            if(!user.getJournalEntries().isEmpty()) journalEntryRepository.deleteAll(user.getJournalEntries());
+            log.info("User Deleted with Username : {}", userName);
         },() ->{
-            throw new UserNotFoundException(String.format("USER NOT FOUND WITH USERNAME : %s",userRepository));
+            // Throw the UserNotFoundException with the correct message
+            throw new UserNotFoundException(String.format("USER NOT FOUND WITH USERNAME : %s",userName));
         });
         return String.format("User Deleted with Username: %s",userName);
     }
@@ -103,5 +120,16 @@ public class UserService {
         }else {
             return String.format("User Already Exist : %s",user.getUserName());
         }
+    }
+
+    public List<User> getUserForSA(){
+        log.info("UserService getUserForSA called");
+        Query query = new Query();
+        query.addCriteria(Criteria.where("email").regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}$"));
+        query.addCriteria(Criteria.where("sentimentAnalysis").is(true));
+        //query.addCriteria(Criteria.where("roles").in(List.of("USER")));
+        List<User> userForSAList = mongoTemplate.find(query, User.class);
+        log.info("UserService getUserForSA userForSAList :: {}",userForSAList);
+        return userForSAList;
     }
 }

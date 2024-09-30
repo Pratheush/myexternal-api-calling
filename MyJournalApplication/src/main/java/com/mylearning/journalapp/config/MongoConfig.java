@@ -12,6 +12,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+/**
+ * @EnableTransactionManagement is used to enable annotation-driven transaction management.
+ *  It allows the use of the @Transactional annotation to manage transactions declaratively.
+ */
 @Configuration
 @EnableTransactionManagement
 @Profile("atlas")

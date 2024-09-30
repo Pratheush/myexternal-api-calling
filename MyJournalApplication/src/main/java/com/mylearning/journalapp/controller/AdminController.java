@@ -30,6 +30,7 @@ public class AdminController {
                         .email(user.getEmail())
                         .journalEntries(user.getJournalEntries())
                         .roles(user.getRoles())
+                        .sentimentAnalysis(user.isSentimentAnalysis())
                         .build())
                 .toList();
 

@@ -74,7 +74,10 @@ public class MaskingConverter extends LogEventPatternConverter {
      * \\$[./A-Za-z0-9]{53}: Matches the 53-character hash after the cost factor, consisting of letters, digits, periods (.), and slashes (/).
      *
      */
-    private static final Pattern SENSITIVE_DATA_PATTERN = Pattern.compile("(password\\s*:\\s*\\$2[aby]?\\$[0-9]{2}\\$[./A-Za-z0-9]{53})");
+    //private static final Pattern SENSITIVE_DATA_PATTERN = Pattern.compile("(password\\s*:\\s*\\$2[aby]?\\$[0-9]{2}\\$[./A-Za-z0-9]{53})");
+
+     // while password logging below pattern can match patterns like >> password:xxxx, password : xxxxx, password=xxxx, password = xxxxx
+    private static final Pattern SENSITIVE_DATA_PATTERN = Pattern.compile("(password\\s*[:=]\\s*\\$2[aby]?\\$[0-9]{2}\\$[./A-Za-z0-9]{53})");
 
     // Updated regex to match "password : value"
     // \\S+ \\S matches any non-whitespace character.+ is a quantifier that matches 1 or more occurrences of the preceding element.
@@ -116,6 +119,7 @@ public class MaskingConverter extends LogEventPatternConverter {
 
         // Replace the password with asterisks if found
         while (sensitiveMatcher.find()) {
+            //log.info("MaskingConverter inside while loop sb : {}",sb);
             sensitiveMatcher.appendReplacement(sb, "password : ********");
         }
         sensitiveMatcher.appendTail(sb);

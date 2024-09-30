@@ -39,6 +39,7 @@ public class UserController {
                 .email(user.getEmail())
                 .roles(user.getRoles())
                 .journalEntries(user.getJournalEntries())
+                .sentimentAnalysis(user.isSentimentAnalysis())
                 .build();
         log.info("UserController getUserByUsername UserDto :: userName : {}, password : {}, email : {}",userDto.userName(),user.getPassword(),userDto.email());
         return ResponseEntity.status(HttpStatus.OK).body(userDto);
