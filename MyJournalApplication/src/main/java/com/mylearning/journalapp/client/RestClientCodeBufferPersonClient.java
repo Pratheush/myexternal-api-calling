@@ -2,16 +2,21 @@ package com.mylearning.journalapp.client;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mylearning.journalapp.clientconfig.MyPersonClientInterface;
 import com.mylearning.journalapp.clientconfig.PersonClient;
 import com.mylearning.journalapp.clientexception.PersonCallingClientException;
 import com.mylearning.journalapp.clientexception.PersonCallingServerException;
 import com.mylearning.journalapp.clientexception.PersonNotFoundException;
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import com.mylearning.journalapp.clientresponse.PersonResource;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.mediatype.hal.Jackson2HalModule;
@@ -31,9 +36,19 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+/**
+ * static methods can’t access instance variables and instance methods directly. They need some object reference to do so.
+ *
+ *  We can use a static variable in an instance method in Java. Static variables belong to the class rather
+ *  than any specific instance, so they can be accessed directly within instance methods.
+ *
+ */
 @Component
 @Slf4j
-public class RestClientCodeBufferPersonClient {
+@ConditionalOnProperty(name = "person.client.type", havingValue = "rest-client")
+public class RestClientCodeBufferPersonClient implements MyPersonClientInterface {
+
+    private static String JWT_TOKEN = null;
 
     private final RestClient restClient;
 
@@ -49,6 +64,7 @@ public class RestClientCodeBufferPersonClient {
         return restClient.get()
                 .uri("/populationByCity")
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<Document>>() {
                 });
@@ -59,6 +75,7 @@ public class RestClientCodeBufferPersonClient {
         return restClient.get()
                 .uri("/oldestPerson")
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<List<Document>>() {});
     }
@@ -73,6 +90,7 @@ public class RestClientCodeBufferPersonClient {
         return restClient.get()
                 .uri("/{name}/{age}", mapVal)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .body(Person.class);
     }
@@ -86,6 +104,7 @@ public class RestClientCodeBufferPersonClient {
                         .queryParam("max",maxAge)
                         .build())
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<Person>>() {});
     }
@@ -111,6 +130,7 @@ public class RestClientCodeBufferPersonClient {
                         .queryParam("size", size.orElse(5))
                         .build())
                 .header(HttpHeaders.CONTENT_TYPE,MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
                     log.error("RestClientCodeBufferPersonClient searchPerson Client Side ERROR Occured Status : {}",response.getStatusCode());
@@ -140,6 +160,7 @@ public class RestClientCodeBufferPersonClient {
          return restClient.post()
                 //.uri(personUrl)
                 .contentType(MediaType.APPLICATION_JSON)
+                 .header("Authorization",getJwtAccessToken())
                 .body(person)
                 .retrieve()
                 .toBodilessEntity();
@@ -150,6 +171,7 @@ public class RestClientCodeBufferPersonClient {
         return restClient.post()
                 //.uri(personUrl)
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .body(person)
                 .retrieve()
                 .body(ObjectId.class);
@@ -161,6 +183,7 @@ public class RestClientCodeBufferPersonClient {
         return restClient.post()
                 .uri("/create-person-on-status")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .body(person)
                 .retrieve()
                 .toEntity(Person.class);
@@ -173,6 +196,7 @@ public class RestClientCodeBufferPersonClient {
                         .build())
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .body(updatePerson)
                 .retrieve()
                 .onStatus(status -> status.value() == 404, (request, response) -> {
@@ -185,6 +209,7 @@ public class RestClientCodeBufferPersonClient {
     public Void deletePerson(ObjectId personId) {
         ResponseEntity<Void> bodilessEntity = restClient.delete()
                 .uri("/{id}", personId)
+                .header("Authorization",getJwtAccessToken())
                 .retrieve()
                 .toBodilessEntity();
         return bodilessEntity.getBody();
@@ -193,6 +218,7 @@ public class RestClientCodeBufferPersonClient {
     public Void deletePersonExchange(ObjectId personId) {
         return restClient.delete()
                 .uri("/{id}", personId)
+                .header("Authorization",getJwtAccessToken())
                 .exchange((request, response) ->{
 
                     if(response.getStatusCode().is4xxClientError()) {
@@ -215,6 +241,7 @@ public class RestClientCodeBufferPersonClient {
                         .build())
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization",getJwtAccessToken())
                 .body(updatePerson)
                 .exchange((request, response) -> {
                     if (response.getStatusCode().is4xxClientError()) {
@@ -244,6 +271,7 @@ public class RestClientCodeBufferPersonClient {
                         .queryParam("page", page.orElse(0))
                         .queryParam("size", size.orElse(5))
                         .build())
+                .header("Authorization",getJwtAccessToken())
                 .exchange((request, response) -> {
                     if (response.getStatusCode().is4xxClientError()) {
                         log.error("Client-side error occurred");
@@ -290,6 +318,11 @@ public class RestClientCodeBufferPersonClient {
 
     // =================================================================================================
 
+    /**
+     * PersonClient RESTCLIENT USAGE :::::::::::::::::::::::::::::::::
+     * @return
+     */
+
     public List<Document> getOldestPersonByCityExchange(){
         List<Document> oldestPersonByCity = personClient.getOldestPersonByCityExchange();
         return oldestPersonByCity;
@@ -335,4 +368,26 @@ public class RestClientCodeBufferPersonClient {
         log.info("RestClientCodeBufferPersonClient searchPersonByExchange personResources :: {}", personResources);
         return personResources;
     }
+
+    public JWTAuthResponse login(LoginDto loginDto) {
+        log.info("RestClientCodeBufferPersonClient login called");
+        String personUrl = "http://localhost:8081/api/codebuffer/person/login";
+        JWTAuthResponse jwtAuthResponse = restClient.post()
+                .uri(personUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(loginDto)
+                .retrieve()
+                .body(JWTAuthResponse.class);
+        log.info("RestClientCodeBufferPersonClient jwtAuthResponse : {}",jwtAuthResponse);
+        if( jwtAuthResponse!=null && !jwtAuthResponse.getAccessToken().isBlank() && !jwtAuthResponse.getAccessToken().isEmpty()){
+            JWT_TOKEN = jwtAuthResponse.getAccessToken();
+        }
+        return jwtAuthResponse;
+
+    }
+
+    public String getJwtAccessToken(){
+        return "Bearer " + JWT_TOKEN;
+    }
+
 }

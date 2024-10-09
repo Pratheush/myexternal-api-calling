@@ -1,14 +1,19 @@
 package com.mylearning.journalapp.client;
 
 
+import com.mylearning.journalapp.clientconfig.MyPersonClientInterface;
 import com.mylearning.journalapp.clientexception.PersonCallingClientException;
 import com.mylearning.journalapp.clientexception.PersonCallingServerException;
 import com.mylearning.journalapp.clientexception.PersonNotFoundException;
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import com.mylearning.journalapp.clientresponse.PersonResource;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.*;
@@ -117,11 +122,13 @@ import java.util.Optional;
 
 @Service
 @Slf4j
-public class WebClientCodeBufferPersonClient {
+@ConditionalOnProperty(name = "person.client.type", havingValue = "web-client")
+public class WebClientCodeBufferPersonClient implements MyPersonClientInterface {
 
+    private static String JWT_TOKEN = null;
     private final WebClient webClient;
 
-    public WebClientCodeBufferPersonClient(WebClient webClient) {
+    public WebClientCodeBufferPersonClient(@Lazy WebClient webClient) {
         this.webClient = webClient;
     }
 
@@ -131,6 +138,7 @@ public class WebClientCodeBufferPersonClient {
         Flux<Document> documentFlux = webClient.get()
                 .uri("/populationByCity")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .retrieve()
                 .bodyToFlux(Document.class);
         return documentFlux;
@@ -147,6 +155,7 @@ public class WebClientCodeBufferPersonClient {
         return webClient.get()
                 .uri("/oldestPerson")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .exchangeToFlux(response -> handleResponseForFlux(response, Document.class));
         }catch(WebClientException ex){
             throw new PersonCallingClientException("Failed to get Oldest Person by city due to ex : %s"+ex.getMessage());
@@ -157,6 +166,7 @@ public class WebClientCodeBufferPersonClient {
        // String personUrl = "http://localhost:8081/api/person/{personId}";
         return webClient.get()
                 .uri("/{personId}", personId)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .retrieve()
                 .onStatus(
                         httpStatus -> !httpStatus.is2xxSuccessful(),
@@ -179,6 +189,7 @@ public class WebClientCodeBufferPersonClient {
     public Flux<Person> getAllPersons() {
         return webClient.get()
                 .uri("/all-person")
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(),
                         clientResponse -> handleErrorResponse(clientResponse.statusCode()))
@@ -192,6 +203,7 @@ public class WebClientCodeBufferPersonClient {
         Mono<ObjectId> objectIdMono = webClient.post()
                 //.uri(personUrl)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .body(Mono.just(person), Person.class)
                 .retrieve()
                 .bodyToMono(ObjectId.class);
@@ -205,6 +217,7 @@ public class WebClientCodeBufferPersonClient {
 
         return webClient.post()
                 //.uri(personUrl)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(Mono.just(person), Person.class)
                 .exchangeToMono(response -> handleResponseForMono(response, ObjectId.class));
@@ -249,6 +262,7 @@ public class WebClientCodeBufferPersonClient {
     public Mono<ResponseEntity<Person>> createPersonOnStatus(Person newPerson) {
         Mono<ResponseEntity<Person>> responseEntityMono = webClient.post()
                 .uri("/create-person-on-status")
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .body(Mono.just(newPerson), Person.class)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> {
@@ -280,6 +294,7 @@ public class WebClientCodeBufferPersonClient {
     public Mono<Person> updatePerson(Person person,ObjectId personId) {
         return webClient.put()
                 .uri("?personId="+"{personId}",personId)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .body(Mono.just(person), Person.class)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
@@ -291,6 +306,7 @@ public class WebClientCodeBufferPersonClient {
     public Mono<Void> deletePersonBodyToMono(ObjectId personId) {
         return webClient.delete()
                 .uri("/{id}", personId)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
                 .onStatus(HttpStatusCode::is5xxServerError, this::handleServerError)
@@ -300,6 +316,7 @@ public class WebClientCodeBufferPersonClient {
     public Mono<Void> deletePersonToEntity(ObjectId personId) {
         Mono<ResponseEntity<Void>> responseEntityMono = webClient.delete()
                 .uri("/{id}", personId)
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
                 .onStatus(HttpStatusCode::is5xxServerError, this::handleServerError)
@@ -391,6 +408,7 @@ public class WebClientCodeBufferPersonClient {
          */
             return webClient.get()
                     .uri(personUriString)
+                    //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                     //.accept(MediaType.APPLICATION_JSON) if i use this then it will give 400 bad requests error in response after fetching the data from remote api and at remote api data is fetching but it gives error of IllegalArgumentException at PersonController in getPersonById() of Invalid ObjectId
                     //.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .header("Content-Type", "application/json")
@@ -454,6 +472,7 @@ public class WebClientCodeBufferPersonClient {
 
         Flux<PagedModel<PersonResource>> pagedModelFlux = webClient.get()
                 .uri(urlBuilder.toUriString())
+                //.headers(httpHeaders -> httpHeaders.add("Authorization", getJwtAccessToken()))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchangeToFlux(clientResponse -> this.handleResponseForFlux(clientResponse, new ParameterizedTypeReference<PagedModel<PersonResource>>() {
                 }));
@@ -607,5 +626,39 @@ public class WebClientCodeBufferPersonClient {
         // Handle non-success status codes here (e.g., logging or custom error handling)
         log.info("WebClientCodeBufferPersonClient handleServerError() Error status : {}", clientResponse.statusCode());
         return Mono.error(new PersonCallingServerException("Failed to fetch Person. Server Error Status code: " + clientResponse.statusCode()));
+    }
+
+    @Override
+    public JWTAuthResponse login(LoginDto loginDto) {
+        log.info("WebClientCodeBufferPersonClient login called");
+
+        // Define the URL
+        String personUrl = "http://localhost:8081/api/codebuffer/person/login";
+
+        Mono<JWTAuthResponse> jwtAuthResponseMono = webClient.post()
+                .uri(personUrl)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .body(Mono.just(loginDto), LoginDto.class)
+                .exchangeToMono(response -> handleResponseForMono(response, JWTAuthResponse.class));
+
+        JWTAuthResponse jwtAuthResponse = jwtAuthResponseMono.block();
+
+        log.info("WebClientCodeBufferPersonClient jwtAuthResponse : {}",jwtAuthResponse);
+
+        if (jwtAuthResponse != null && jwtAuthResponse.getAccessToken() != null
+                && !jwtAuthResponse.getAccessToken().isBlank() && !jwtAuthResponse.getAccessToken().isEmpty()) {
+            log.info("JWT Token Set Successfully");
+            JWT_TOKEN = jwtAuthResponse.getAccessToken();
+        } else {
+            log.error("Invalid JWT Token Received: {}", jwtAuthResponse);
+            throw new IllegalArgumentException("Invalid JWT Token");
+        }
+
+        return jwtAuthResponse;
+    }
+
+    @Override
+    public String getJwtAccessToken() {
+        return "Bearer " + JWT_TOKEN;
     }
 }

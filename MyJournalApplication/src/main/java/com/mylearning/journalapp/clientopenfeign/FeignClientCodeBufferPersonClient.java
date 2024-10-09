@@ -1,12 +1,17 @@
 package com.mylearning.journalapp.clientopenfeign;
 
+import com.mylearning.journalapp.clientconfig.MyPersonClientInterface;
 import com.mylearning.journalapp.clientexception.PersonCallingClientException;
 import com.mylearning.journalapp.clientexception.PersonCallingServerException;
 import com.mylearning.journalapp.clientexception.PersonNotFoundException;
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -24,17 +29,30 @@ import java.util.Optional;
 
 @Service
 @Slf4j
-public class FeignClientCodeBufferPersonClient {
+@ConditionalOnProperty(name = "person.client.type", havingValue = "open-feign")
+public class FeignClientCodeBufferPersonClient implements MyPersonClientInterface {
+
+    private static String JWT_TOKEN = null;
 
     private final PersonFeignClient personFeignClient;
+    private final PersonLoginFeignClient personLoginFeignClient;
 
-    public FeignClientCodeBufferPersonClient(PersonFeignClient personFeignClient) {
+    private final PersonFeignClientUsingRequestHeader personFeignClientUsingRequestHeader;
+
+    @Autowired
+    public FeignClientCodeBufferPersonClient(PersonFeignClient personFeignClient, PersonLoginFeignClient personLoginFeignClient, PersonFeignClientUsingRequestHeader personFeignClientUsingRequestHeader) {
         this.personFeignClient = personFeignClient;
+        this.personLoginFeignClient = personLoginFeignClient;
+        this.personFeignClientUsingRequestHeader = personFeignClientUsingRequestHeader;
     }
 
     public List<Document> getPopulationByCity(){
-
-        ResponseEntity<List<Document>> populationByCityResponse = personFeignClient.getPopulationByCity();
+        log.info("FeignClientCodeBufferPersonClient getPopulationByCity() called");
+        String jwtAccessToken = getJwtAccessToken();
+        log.info("FeignClientCodeBufferPersonClient getPopulationByCity() jwtAccessToken {}", jwtAccessToken);
+        ResponseEntity<List<Document>> populationByCityResponse =
+                personFeignClientUsingRequestHeader.getPopulationByCity(jwtAccessToken);
+        log.info("FeignClientCodeBufferPersonClient getPopulationByCity() populationByCityResponse {}", populationByCityResponse.getBody());
         if (populationByCityResponse.getStatusCode().is2xxSuccessful()) {
             //Process response body
             List<Document> personList = populationByCityResponse.getBody();
@@ -129,5 +147,25 @@ public class FeignClientCodeBufferPersonClient {
         );
         log.info("FeignClientCodeBufferPersonClient searchPersonByExchange personResources :: {}", personResources);
         return personResources;
+    }
+
+    @Override
+    public JWTAuthResponse login(LoginDto loginDto) {
+        log.info("FeignClientCodeBufferPersonClient login called");
+
+        JWTAuthResponse jwtAuthResponse = personLoginFeignClient.login(loginDto);
+
+        log.info("FeignClientCodeBufferPersonClient jwtAuthResponse : {}",jwtAuthResponse);
+        if( jwtAuthResponse!=null && !jwtAuthResponse.getAccessToken().isBlank() && !jwtAuthResponse.getAccessToken().isEmpty()){
+            JWT_TOKEN = jwtAuthResponse.getAccessToken();
+        }
+
+        return jwtAuthResponse;
+    }
+
+    @Override
+    public String getJwtAccessToken(){
+        log.info("FeignClientCodeBufferPersonClient getJwtAccessToken called");
+        return "Bearer " + JWT_TOKEN;
     }
 }

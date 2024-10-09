@@ -1,14 +1,14 @@
 package com.mylearning.journalapp.client;
 
+import com.mylearning.journalapp.clientconfig.MyPersonClientInterface;
 import com.mylearning.journalapp.clientexception.PersonCallingClientException;
 import com.mylearning.journalapp.clientexception.PersonCallingServerException;
 import com.mylearning.journalapp.clientexception.PersonNotFoundException;
-import com.mylearning.journalapp.clientresponse.Person;
-import com.mylearning.journalapp.clientresponse.PersonPageResponse;
-import com.mylearning.journalapp.clientresponse.PersonResource;
+import com.mylearning.journalapp.clientresponse.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 
@@ -72,9 +72,12 @@ import java.util.Optional;
 
 @Component
 @Slf4j
-public class RestTemplateCodeBufferPersonClient {
+@ConditionalOnProperty(name = "person.client.type", havingValue = "rest-template")
+public class RestTemplateCodeBufferPersonClient implements MyPersonClientInterface {
 
     private final RestTemplate restTemplate;
+
+    private static String JWT_TOKEN = "";
 
     public RestTemplateCodeBufferPersonClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -356,4 +359,29 @@ public class RestTemplateCodeBufferPersonClient {
     }
 
 
+    @Override
+    public JWTAuthResponse login(LoginDto loginDto) {
+        log.info("RestTemplateCodeBufferPersonClient login called");
+
+        // Define the URL
+        String personUrl = "http://localhost:8081/api/codebuffer/person/login";
+
+        // Set the headers if needed
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+
+        // Create the HttpEntity object with the headers and the body
+        HttpEntity<LoginDto> requestEntity = new HttpEntity<>(loginDto, headers);
+
+        ResponseEntity<JWTAuthResponse> jwtAuthResponseEntity = restTemplate.exchange(personUrl, HttpMethod.POST, requestEntity, JWTAuthResponse.class);
+        JWTAuthResponse jwtAuthResponse = jwtAuthResponseEntity.getBody();
+        log.info("RestTemplateCodeBufferPersonClient jwtAuthResponse : {}",jwtAuthResponse);
+        if( jwtAuthResponse!=null && !jwtAuthResponse.getAccessToken().isBlank() && !jwtAuthResponse.getAccessToken().isEmpty()) JWT_TOKEN = jwtAuthResponse.getAccessToken();
+        return jwtAuthResponse;
+    }
+
+    @Override
+    public String getJwtAccessToken() {
+        return "Bearer " + JWT_TOKEN;
+    }
 }

@@ -1,9 +1,14 @@
 package com.mylearning.journalapp.clientopenfeign;
 
+import com.mylearning.journalapp.client.WebClientCodeBufferPersonClient;
+import com.mylearning.journalapp.clientconfig.MyPersonClientInterface;
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/feign-client-person")
 @Slf4j
+@ConditionalOnBean(FeignClientCodeBufferPersonClient.class)  //Register a bean only if another bean is already registered. Example: Combine with another condition
 public class FeignClientPersonController {
 
     private final FeignClientCodeBufferPersonClient feignPersonService;
@@ -22,6 +28,24 @@ public class FeignClientPersonController {
     public FeignClientPersonController(FeignClientCodeBufferPersonClient feignPersonService) {
         this.feignPersonService = feignPersonService;
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<JWTAuthResponse> login(@RequestBody LoginDto loginDto) {
+        log.info("FeignClientPersonController login() called");
+
+        try {
+            // Set the Context Flag in the Controller Method:
+            FeignContextHolder.setSkipAuthorization(true);
+
+            JWTAuthResponse jwtAuthResponse = feignPersonService.login(loginDto);
+            return ResponseEntity.ok(jwtAuthResponse);
+        }  finally {
+            log.info("FeignClientPersonController login finally Block");
+            FeignContextHolder.clear(); // Clear the context
+        }
+    }
+
+    //=================================================================================================
 
     @GetMapping("/population-by-city")
     public ResponseEntity<List<Document>> getPopulationByCity(){

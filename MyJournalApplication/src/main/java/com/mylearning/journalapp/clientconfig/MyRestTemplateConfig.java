@@ -10,18 +10,25 @@ import java.time.Duration;
 @Configuration
 public class MyRestTemplateConfig {
 
+    private final JwtInterceptor jwtInterceptor;
+
+    public MyRestTemplateConfig(JwtInterceptor jwtInterceptor) {
+        this.jwtInterceptor = jwtInterceptor;
+    }
+
     /**
      * RestTemplateBuilder is a convenience class that provides a builder-style API for configuring and
      * creating RestTemplate instances with advanced configurations such as timeouts.
-     * @param builder
+     * @param restTemplateBuilder
      * @return
      */
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    public RestTemplate restTemplate(RestTemplateBuilder restTemplateBuilder) {
 
-        return builder
+        return restTemplateBuilder
                 .setConnectTimeout(Duration.ofMillis(3000))
                 .setReadTimeout(Duration.ofMillis(3000))
+                .interceptors(jwtInterceptor)
                 .build();
     }
 }

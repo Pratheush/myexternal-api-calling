@@ -1,5 +1,7 @@
 package com.mylearning.journalapp.clientopenfeign;
 
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import com.mylearning.journalapp.clientresponse.PersonResource;
 import org.bson.Document;
@@ -22,13 +24,15 @@ import java.util.List;
  *
  *  like this ::
  * @FeignClient(name = "personFeignClient", url = "http://localhost:8080", configuration = FeignClientConfig.class)
- *
+ *   configuration = FeignConfig.class
+ *   @RequestHeader("Authorization") String jwtToken
  */
-@FeignClient(value = "PERSON-FEIGN-CLIENT", url = "http://localhost:8081/api/person")
+@FeignClient(value = "PERSON-FEIGN-CLIENT", url = "http://localhost:8081/api/person", configuration = FeignConfig.class)
 public interface PersonFeignClient {
 
-    @GetMapping(value = "/populationByCity")
-    ResponseEntity<List<Document>> getPopulationByCity();
+    // later separated this abstract method to avoid confusion so to use @RequestHeader we created another FeignClient Interface and used this method in another
+    /*@GetMapping(value = "/populationByCity")
+    ResponseEntity<List<Document>> getPopulationByCity(@RequestHeader("Authorization") String jwtToken);*/
 
     @GetMapping(value = "/oldestPerson")
     ResponseEntity<List<Document>> getOldestPersonByCity();
@@ -57,4 +61,5 @@ public interface PersonFeignClient {
 
     @GetMapping("/all-person")
     List<PersonResource> getAllPersonsByExchange();
+
 }

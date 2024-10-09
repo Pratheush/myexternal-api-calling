@@ -1,13 +1,12 @@
 package com.mylearning.journalapp.clientcontroller;
 
 import com.mylearning.journalapp.client.RestTemplateCodeBufferPersonClient;
-import com.mylearning.journalapp.clientresponse.Person;
-import com.mylearning.journalapp.clientresponse.PersonPageResponse;
-import com.mylearning.journalapp.clientresponse.PersonResource;
+import com.mylearning.journalapp.clientresponse.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/rest-person")
 @Slf4j
+@ConditionalOnBean(RestTemplateCodeBufferPersonClient.class)  // Register a bean only if another bean is already registered. Example: Combine with another condition
 public class RestTemplatePersonController {
 
     private final RestTemplateCodeBufferPersonClient restTemplatePersonClient;
@@ -28,6 +28,15 @@ public class RestTemplatePersonController {
     public RestTemplatePersonController(RestTemplateCodeBufferPersonClient restTemplatePersonClient) {
         this.restTemplatePersonClient = restTemplatePersonClient;
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<JWTAuthResponse> login(@RequestBody LoginDto loginDto) {
+        log.info("RestTemplatePersonController login() called");
+        JWTAuthResponse jwtAuthResponse = restTemplatePersonClient.login(loginDto);
+        return ResponseEntity.ok(jwtAuthResponse);
+    }
+
+    //================================================================================================
 
     @GetMapping("/population-by-city")
     public ResponseEntity<List<Document>> getPopulationByCity(){

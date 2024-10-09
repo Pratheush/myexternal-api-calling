@@ -4,6 +4,7 @@ import com.mylearning.journalapp.clientresponse.Person;
 import feign.Param;
 import feign.RequestLine;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 /**
  * @RequestLine(value = "GET /{name}/{age}")

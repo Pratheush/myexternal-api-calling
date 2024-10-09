@@ -1,11 +1,15 @@
 package com.mylearning.journalapp.clientcontroller;
 
 import com.mylearning.journalapp.client.WebClientCodeBufferPersonClient;
+import com.mylearning.journalapp.clientconfig.InterceptorContext;
+import com.mylearning.journalapp.clientresponse.JWTAuthResponse;
+import com.mylearning.journalapp.clientresponse.LoginDto;
 import com.mylearning.journalapp.clientresponse.Person;
 import com.mylearning.journalapp.clientresponse.PersonResource;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/web-client-person")
 @Slf4j
+@ConditionalOnBean(WebClientCodeBufferPersonClient.class)  //Register a bean only if another bean is already registered. Example: Combine with another condition
 public class WebClientPersonController {
 
     private final WebClientCodeBufferPersonClient webClientPersonClient;
@@ -26,6 +31,22 @@ public class WebClientPersonController {
     public WebClientPersonController(WebClientCodeBufferPersonClient webClientPersonClient) {
         this.webClientPersonClient = webClientPersonClient;
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<JWTAuthResponse> login(@RequestBody LoginDto loginDto) {
+        log.info("WebClientPersonController login() called");
+        try {
+            // Set the Context Flag in the Controller Method:
+            InterceptorContext.setDisableInterceptor(true); // Disable interceptor for login
+            JWTAuthResponse jwtAuthResponse = webClientPersonClient.login(loginDto);
+            return ResponseEntity.ok(jwtAuthResponse);
+        }  finally {
+            log.info("WebClientPersonController login finally Block");
+            InterceptorContext.clear(); // Clear the context
+        }
+    }
+
+    //================================================================================================================
 
     @GetMapping("/population-by-city")
     public ResponseEntity<Flux<Document>> getPopulationByCity(){
