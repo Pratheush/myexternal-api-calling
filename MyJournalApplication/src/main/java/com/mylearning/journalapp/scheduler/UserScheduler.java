@@ -1,11 +1,13 @@
 package com.mylearning.journalapp.scheduler;
 
 import com.mylearning.journalapp.entity.JournalEntry;
+import com.mylearning.journalapp.entity.SentimentData;
 import com.mylearning.journalapp.entity.User;
 import com.mylearning.journalapp.enums.Sentiment;
 import com.mylearning.journalapp.service.EmailService;
 import com.mylearning.journalapp.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,17 +24,18 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 public class UserScheduler {
-    private final EmailService emailService;
 
     private final UserService userService;
 
-    public UserScheduler(EmailService emailService, UserService userService) {
-        this.emailService = emailService;
+    private final KafkaTemplate<String,SentimentData> kafkaTemplate;
+
+    public UserScheduler(UserService userService, KafkaTemplate<String, SentimentData> kafkaTemplate) {
         this.userService = userService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     //@Scheduled(cron = "0 0 9 * * SUN")    // scheduler for every sunday at 9 am
-    //@Scheduled(cron = "0 */2 * * * *")  // scheduler for every 2 minutes
+    @Scheduled(cron = "0 */2 * * * *")  // scheduler for every 2 minutes
     public void fetchUserAndSendEmail(){
         log.info("UserScheduler fetchUserAndSendEmail called");
         List<User> userForSA = userService.getUserForSA();
@@ -58,7 +61,9 @@ public class UserScheduler {
 
             if (mostFrequentSentiment!=null){
                 log.info("UserScheduler fetchUserAndSendEmail sending email initiating");
-                emailService.sendEmail(user.getEmail(), "Last 7 Days Sentiment",mostFrequentSentiment.toString());
+                SentimentData sentimentData = SentimentData.builder().email(user.getEmail()).sentiment("Last 7 Days Sentiment :" + mostFrequentSentiment.toString()).build();
+                kafkaTemplate.send("daily-sentiments",sentimentData);
+                //emailService.sendEmail(user.getEmail(), "Last 7 Days Sentiment",mostFrequentSentiment.toString());
             }
         }
     }
